@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IFTA Calc Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fb; --panel:#fbfcfe;
+  --ink:#18222f; --muted:#5d6b7d; --faint:#8a97a7; --line:#dbe2ea; --line-2:#e8edf3;
+  --accent:#0d766e; --accent-ink:#0a5d56; --accent-soft:#d6ebe8;
+  --credit:#1f7a52; --credit-soft:#dcefe4; --due:#b0472c; --due-soft:#f4e2da;
+  --warn:#b3801f; --warn-soft:#f6ecd4;
+  --shadow:0 1px 2px rgba(24,34,47,.06),0 8px 24px -12px rgba(24,34,47,.18);
+  --shadow-lg:0 24px 60px -22px rgba(24,34,47,.4);
+  --r:10px; --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1017; --surface:#141b24; --surface-2:#101720; --panel:#161e28;
+  --ink:#e6ecf3; --muted:#9aa8b8; --faint:#6b7889; --line:#25303c; --line-2:#1e2833;
+  --accent:#3fb6a8; --accent-ink:#66cabd; --accent-soft:#153029;
+  --credit:#4fbd84; --credit-soft:#132a20; --due:#e08363; --due-soft:#2c1a14;
+  --warn:#d6a94a; --warn-soft:#2a2312;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+  --shadow-lg:0 30px 70px -20px rgba(0,0,0,.75);
+}}
+:root[data-theme="dark"]{
+  --bg:#0c1017; --surface:#141b24; --surface-2:#101720; --panel:#161e28;
+  --ink:#e6ecf3; --muted:#9aa8b8; --faint:#6b7889; --line:#25303c; --line-2:#1e2833;
+  --accent:#3fb6a8; --accent-ink:#66cabd; --accent-soft:#153029;
+  --credit:#4fbd84; --credit-soft:#132a20; --due:#e08363; --due-soft:#2c1a14;
+  --warn:#d6a94a; --warn-soft:#2a2312;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+  --shadow-lg:0 30px 70px -20px rgba(0,0,0,.75);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;text-wrap:balance}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:14px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ---- shell ---- */
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 48px}
+header.top{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.top-in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:15px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.brand b{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.brand span{display:block;font-size:11.5px;color:var(--muted);font-weight:400}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.icon-btn{background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:8px;height:34px;padding:0 12px;font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ---- stepper ---- */
+.stepper{display:flex;gap:4px;margin:16px 0 12px;flex-wrap:wrap}
+.step-chip{display:flex;align-items:center;gap:9px;padding:9px 14px 9px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:12.5px;font-weight:500}
+.step-chip .n{width:20px;height:20px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:600;font-family:var(--mono)}
+.step-chip[data-on="1"]{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+.step-chip[data-on="1"] .n{background:var(--accent);color:#fff;border-color:var(--accent)}
+.step-chip[data-done="1"]{cursor:pointer;color:var(--ink)}
+.step-chip[data-done="1"] .n{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent)}
+.step-chip[data-done="1"] .n::after{content:"✓"}
+.step-chip[data-done="1"] .n span{display:none}
+
+/* ---- cards / sections ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.pad{padding:16px 18px}
+.eyebrow{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;font-family:var(--mono)}
+.h-lead{font-size:19px;font-weight:600;letter-spacing:-.02em;margin:4px 0 2px}
+.sub{color:var(--muted);font-size:13px;max-width:62ch}
+.grid-f{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 14px;margin-top:14px}
+@media(max-width:760px){.grid-f{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:400px){.grid-f{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:600;color:var(--ink)}
+.field .hint{font-size:11.5px;color:var(--faint)}
+.control,input[type=text],input[type=number],input[type=date],select{width:100%;height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);transition:border-color .12s,box-shadow .12s}
+select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%235d6b7d' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.control:focus,input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);outline:none}
+.readout{height:40px;display:flex;align-items:center;padding:0 12px;border:1px dashed var(--line);border-radius:8px;background:var(--panel);color:var(--muted);font-family:var(--mono);font-size:13px;justify-content:space-between}
+.readout b{color:var(--ink);font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:600;font-family:var(--mono)}
+.pill.ok{background:var(--credit-soft);color:var(--credit)}
+.pill.late{background:var(--warn-soft);color:var(--warn)}
+
+/* ---- footer nav ---- */
+.navbar{display:flex;gap:12px;align-items:center;margin-top:16px}
+.btn{height:44px;padding:0 22px;border-radius:9px;font-size:14px;font-weight:600;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:var(--shadow)}
+.btn.primary:hover{background:var(--accent-ink)}
+.btn.ghost{background:var(--surface);border-color:var(--line);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{height:36px;padding:0 14px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.spacer{flex:1}
+
+/* ---- vehicles ---- */
+.veh-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.veh-dots{display:flex;gap:6px;flex-wrap:wrap}
+.vdot{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:12px;font-weight:600;font-family:var(--mono);display:grid;place-items:center}
+.vdot[data-on="1"]{border-color:var(--accent);background:var(--accent);color:#fff}
+.vdot[data-filled="1"]:not([data-on="1"]){border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+.fuelgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+@media(max-width:720px){.fuelgrid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:440px){.fuelgrid{grid-template-columns:repeat(2,1fr)}}
+.fuelopt{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:9px 10px;font-size:12.5px;font-weight:600;color:var(--muted);text-align:center;transition:.12s}
+.fuelopt:hover{border-color:var(--accent)}
+.fuelopt[data-on="1"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);box-shadow:inset 0 0 0 1px var(--accent)}
+
+.jtable{width:100%;border-collapse:collapse;margin-top:6px}
+.jtable th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:left;padding:8px 8px;border-bottom:1px solid var(--line)}
+.jtable td{padding:5px 6px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.jtable input,.jtable select{height:34px;background:var(--surface);font-size:13px}
+.jtable td.num input{text-align:right;font-family:var(--mono)}
+.jtable .conv{font-size:10.5px;color:var(--accent-ink);font-family:var(--mono);white-space:nowrap;padding-top:2px}
+.rm{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--faint);font-size:15px;line-height:1;display:grid;place-items:center}
+.rm:hover{border-color:var(--due);color:var(--due)}
+.jw{overflow-x:auto}
+.veh-foot{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;align-items:flex-end}
+.mini-field{display:flex;flex-direction:column;gap:5px;min-width:150px}
+.mini-field label{font-size:11.5px;font-weight:600;color:var(--muted)}
+.mini-field input{height:36px}
+
+/* ---- results ---- */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+@media(max-width:640px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden}
+.tile .tl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.tile .tv{font-size:23px;font-weight:600;font-family:var(--mono);letter-spacing:-.01em;margin-top:6px;line-height:1}
+.tile.total{background:linear-gradient(180deg,var(--accent-soft),var(--surface))}
+.tile.total .tv{color:var(--accent-ink)}
+.tile .strip{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+.tile.due .strip{background:var(--due)} .tile.int .strip{background:var(--warn)} .tile.pen .strip{background:var(--faint)} .tile.total .strip{background:var(--accent)}
+.tv.credit{color:var(--credit)!important}
+.blockcalc{font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:9px;line-height:1.45;word-break:break-word}
+.blockcalc b{color:var(--ink)}
+
+.fuelsec{margin-top:26px}
+.fs-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:2px}
+.fs-head h3{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.tag{font-size:11px;font-family:var(--mono);font-weight:600;padding:2px 8px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.mpgline{font-size:11.5px;color:var(--muted);font-family:var(--mono);margin:2px 0 10px}
+.rt-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table.rt{width:100%;border-collapse:collapse;font-size:12.5px;min-width:720px}
+table.rt th{position:sticky;top:0;background:var(--surface-2);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.rt th:first-child{text-align:left}
+table.rt td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line-2);font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.rt td:first-child{text-align:left;font-family:var(--sans);font-weight:600}
+table.rt tr.surch td:first-child{color:var(--warn);font-weight:600}
+table.rt tr.surch{background:color-mix(in srgb,var(--warn-soft) 40%,transparent)}
+table.rt tr.subtot td{border-top:2px solid var(--line);border-bottom:none;font-weight:700;background:var(--surface-2)}
+table.rt tr.subtot td:first-child{font-family:var(--sans)}
+.val{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--faint);text-underline-offset:3px;border-radius:4px;padding:1px 3px;margin:-1px -3px;transition:background .1s}
+.val:hover{background:var(--accent-soft)}
+.val.sel{background:var(--accent);color:#fff;text-decoration:none}
+.val.credit{color:var(--credit)}
+.val.credit.sel{color:#fff}
+.rate-na{color:var(--faint)}
+
+/* ---- trace panel ---- */
+.trace-back{position:fixed;inset:0;background:rgba(10,15,22,.35);opacity:0;pointer-events:none;transition:.2s;z-index:60}
+.trace-back[data-open="1"]{opacity:1;pointer-events:auto}
+.trace{position:fixed;top:0;right:0;height:100%;width:min(430px,94vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow-lg);transform:translateX(102%);transition:transform .24s cubic-bezier(.4,0,.2,1);z-index:61;display:flex;flex-direction:column}
+.trace[data-open="1"]{transform:none}
+.trace-hd{padding:18px 20px 14px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px}
+.trace-hd .tk{font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);font-weight:600}
+.trace-hd h3{font-size:17px;font-weight:600;margin-top:3px;letter-spacing:-.01em}
+.trace-hd .big{font-family:var(--mono);font-size:22px;font-weight:600;margin-top:6px}
+.trace-x{margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:16px;flex:none}
+.trace-body{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.tstep{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:13px 14px}
+.tstep .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600;font-family:var(--mono);margin-bottom:7px}
+.tstep .formula{font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.7}
+.tstep .formula .hl{color:var(--ink);font-weight:600}
+.tstep .formula .res{color:var(--accent-ink);font-weight:600}
+.tstep .eq{color:var(--faint);margin:0 2px}
+.contribs{margin-top:9px;border-top:1px dashed var(--line);padding-top:9px;font-family:var(--mono);font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.note{font-size:12px;color:var(--muted);background:var(--accent-soft);border-radius:8px;padding:10px 12px;line-height:1.5}
+.branch{font-size:12px;color:var(--ink);background:var(--warn-soft);border-radius:8px;padding:10px 12px;line-height:1.5}
+
+/* ---- import modal ---- */
+.modal-back{position:fixed;inset:0;background:rgba(10,15,22,.4);display:none;place-items:center;z-index:70;padding:20px}
+.modal-back[data-open="1"]{display:grid}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);width:min(560px,96vw);max-height:90vh;overflow:auto}
+.modal .pad{padding:20px 22px}
+textarea{width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:11px;resize:vertical}
+.codeg{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:7px;padding:9px 11px;color:var(--muted);white-space:pre;overflow-x:auto}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:9px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:90;box-shadow:var(--shadow-lg)}
+.toast[data-on="1"]{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{color:var(--muted);font-size:13px;padding:14px 0}
+.chk{font-size:12px;color:var(--faint);margin-top:16px;display:flex;align-items:center;gap:7px}
+.chk b{color:var(--credit);font-family:var(--mono)}
+.addrow{margin-top:8px}
+.paste-hint{margin:10px 0 2px;font-size:11.5px;color:var(--muted);background:var(--accent-soft);border-radius:7px;padding:8px 11px;line-height:1.45}
+.paste-hint b{color:var(--accent-ink);font-family:var(--mono);font-size:11px}
+.hidden{display:none!important}
+
+/* history */
+.hist-count{display:none;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;place-items:center;font-family:var(--mono)}
+.histitem{display:flex;gap:8px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.histitem[data-cur="1"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.hi-main{flex:1;min-width:0;padding:12px 14px;cursor:pointer}
+.hi-main:hover{background:var(--surface-2)}
+.hi-top{display:flex;align-items:center;gap:8px}
+.hi-q{font-weight:600;font-size:13.5px}
+.hi-total{font-size:20px;font-weight:600;margin:5px 0 2px}
+.hi-meta{font-size:11.5px;color:var(--muted)}
+.hi-chips{display:flex;flex-wrap:wrap;gap:4px;margin:7px 0 4px}
+.fchip{font-size:10.5px;font-family:var(--mono);font-weight:600;padding:2px 7px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink)}
+.hi-nums{font-size:11px;color:var(--faint);margin-top:2px}
+.hi-ts{font-size:10.5px;color:var(--faint);margin-top:4px;font-family:var(--mono)}
+.hi-del{width:38px;border:none;border-left:1px solid var(--line);background:var(--surface);color:var(--faint);font-size:14px;flex:none}
+.hi-del:hover{background:var(--due-soft);color:var(--due)}
+
+/* compact filing readouts */
+.readrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.readrow .readout{flex:1;min-width:120px;height:36px}
+/* fuel-type summary list */
+.fuellist{margin-top:20px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.fl-head,.fl-bar{display:grid;grid-template-columns:minmax(0,1.7fr) .7fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:9px 16px}
+.fl-head{background:var(--surface-2);border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:600;font-family:var(--mono)}
+.fl-head span:not(:first-child),.fl-bar span:not(.fl-name){text-align:right}
+.fl-item{border-bottom:1px solid var(--line-2)}
+.fl-item:last-child{border-bottom:none}
+.fl-bar{cursor:pointer;font-size:13.5px}
+.fl-bar:hover{background:var(--surface-2)}
+.fl-bar .mono{font-size:13px}
+.fl-name{display:flex;align-items:center;gap:8px;font-weight:600;font-family:var(--sans)}
+.chev{color:var(--faint);font-size:11px;transition:transform .15s;display:inline-block}
+.fl-bar.open{background:var(--surface-2)}
+.fl-bar.open .chev{transform:rotate(90deg);color:var(--accent)}
+.fl-det{padding:4px 16px 16px}
+.fl-det .mpgline{margin:8px 0 8px}
+@media(max-width:560px){.fl-head,.fl-bar{grid-template-columns:minmax(0,1.4fr) 1fr 1fr;gap:6px}.fl-head span:nth-child(2),.fl-bar span:nth-child(2){display:none}.fl-head span:nth-child(4),.fl-bar span:nth-child(4){display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="mark">₮</div>
+      <div><b>IFTA Calc Bench</b><span>eIFTA quarterly tax — reconciliation tool</span></div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btnHist">◷ Past filings <span class="hist-count" id="histCount"></span></button>
+      <button class="icon-btn" id="btnImport">⤵ Import</button>
+      <button class="icon-btn" id="btnTheme">◐ Theme</button>
+      <button class="icon-btn" id="btnReset">↺ New filing</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stepper" id="stepper"></div>
+  <div id="view"></div>
+</div>
+
+<!-- trace panel -->
+<div class="trace-back" id="traceBack"></div>
+<aside class="trace" id="trace" aria-live="polite">
+  <div class="trace-hd">
+    <div style="min-width:0">
+      <div class="tk" id="trKind">CALCULATION</div>
+      <h3 id="trTitle">—</h3>
+      <div class="big mono" id="trBig">—</div>
+    </div>
+    <button class="trace-x" id="trClose">✕</button>
+  </div>
+  <div class="trace-body" id="trBody"></div>
+</aside>
+
+<!-- history drawer -->
+<div class="trace-back" id="histBack"></div>
+<aside class="trace" id="histPanel">
+  <div class="trace-hd">
+    <div style="min-width:0">
+      <div class="tk">Test coverage</div>
+      <h3>Past filings</h3>
+      <div class="sub" style="font-size:12px;margin-top:2px">Every calculated case is saved here. Click one to reopen it.</div>
+    </div>
+    <button class="trace-x" id="histClose">✕</button>
+  </div>
+  <div class="trace-body" id="histList"></div>
+</aside>
+
+<!-- import modal -->
+<div class="modal-back" id="importBack">
+  <div class="modal">
+    <div class="pad">
+      <div class="eyebrow">Bulk entry</div>
+      <h2 class="h-lead" style="font-size:19px">Import vehicle data</h2>
+      <p class="sub" style="font-size:13px">Paste rows for the <b id="impVeh">current vehicle</b>. One jurisdiction per line: <b>code, IFTA miles, non-taxable miles, fuel, unit</b>. Unit is optional (defaults to Gallons; use <code>L</code> for Liters).</p>
+      <div class="codeg" style="margin:12px 0">AZ, 20000, 0, 3000, G
+MI, 9000, 0, 1500
+NM, 40000, 0, 2000
+TX, 30000, 0, 100, G</div>
+      <textarea id="impText" placeholder="Paste rows here… (CSV, tab, or space separated)"></textarea>
+      <p class="sub" style="font-size:12px;margin-top:10px">📸 Have a screenshot or a big table instead? Drop the image into the chat and Claude will convert it into the paste format above (or a ready-to-load file) for you.</p>
+      <div class="navbar" style="margin-top:16px">
+        <button class="btn ghost sm" id="impCancel">Cancel</button>
+        <div class="spacer"></div>
+        <button class="btn primary sm" id="impApply">Load rows</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DB={"fuels":["DIESEL","GASOLINE","GASOHOL","ETHANOL","METHANOL","PROPANE","E-85","M-85","A55","BIODIESEL"],"order":["AB","BC","MB","NB","NL","NS","ON","PE","QC","SK","AL","AZ","AR","CA","CO","CT","DE","FL","GA","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"],"names":{"AB":"Alberta","BC":"British Columbia","MB":"Manitoba","NB":"New Brunswick","NL":"Newfoundland","NS":"Nova Scotia","ON":"Ontario","PE":"Prince Edward Is.","QC":"Quebec","SK":"Saskatchewan","AL":"Alabama","AZ":"Arizona","AR":"Arkansas","CA":"California","CO":"Colorado","CT":"Connecticut","DE":"Delaware","FL":"Florida","GA":"Georgia","ID":"Idaho","IL":"Illinois","IN":"Indiana","IA":"Iowa","KS":"Kansas","KY":"Kentucky","LA":"Louisiana","ME":"Maine","MD":"Maryland","MA":"Massachusetts","MI":"Michigan","MN":"Minnesota","MS":"Mississippi","MO":"Missouri","MT":"Montana","NE":"Nebraska","NV":"Nevada","NH":"New Hampshire","NJ":"New Jersey","NM":"New Mexico","NY":"New York","NC":"North Carolina","ND":"North Dakota","OH":"Ohio","OK":"Oklahoma","OR":"Oregon","PA":"Pennsylvania","RI":"Rhode Island","SC":"South Carolina","SD":"South Dakota","TN":"Tennessee","TX":"Texas","UT":"Utah","VT":"Vermont","VA":"Virginia","WA":"Washington","WV":"West Virginia","WI":"Wisconsin","WY":"Wyoming"},"rates":{"1Q2026":{"base":{"AB":[0.3575,0.3575,0.3575,0.3575,0.3575,0.2585,0.3575,0.3575,0.3575,0.3575],"BC":[0.4125,0.3987,0.3987,0.3987,null,0.0742,0.3987,null,0.4125,0.4125],"MB":[0.3437,0.3437,0.3437,0.3437,0.3437,0.0825,0.3437,0.3437,0.3437,0.3437],"NB":[0.4248,0.2989,0.2989,0.2989,0.2989,0.1842,0.2989,0.2989,0.4248,0.4248],"NL":[0.2612,0.2062,null,null,null,0.1925,null,null,null,null],"NS":[0.4235,0.4262,0.4262,null,null,0.1925,null,null,null,0.4235],"ON":[0.2475,0.2475,0.2475,0.2475,null,null,0.2475,0.2475,0.2475,0.2475],"PE":[0.3891,0.2329,0.2329,0.2329,0.2329,null,0.2329,0.2329,0.2329,null],"QC":[0.5555,0.5279,0.5279,0.5555,0.5279,null,0.5555,0.5279,0.5555,0.5555],"SK":[0.4125,0.4125,0.4125,0.4125,0.4125,0.2475,0.4125,0.4125,0.4125,0.4125],"AL":[0.31,0.3,0.3,0.3,0.3,0.31,0.3,0.3,0.3,0.31],"AZ":[0.26,0.18,0.18,null,null,null,0.18,0.18,null,0.26],"AR":[0.285,0.247,0.247,0.247,0.247,0.165,0.247,0.247,null,0.285],"CA":[0.971,null,null,0.09,0.09,0.06,0.09,0.09,0.971,0.971],"CO":[0.325,0.27,0.27,0.27,0.27,0.135,0.27,0.27,0.27,0.325],"CT":[0.489,0.25,0.25,0.25,0.25,0.26,0.25,0.25,0.25,0.489],"DE":[0.22,0.23,0.23,0.23,0.23,0.22,0.22,0.22,0.22,0.22],"FL":[0.4027,0.404,0.404,null,null,null,null,null,null,0.4027],"GA":[0.371,0.331,0.331,0.331,0.331,0.331,0.331,0.331,0.331,0.371],"ID":[0.32,null,null,null,null,0.232,null,null,0.32,0.32],"IL":[0.738,0.653,0.653,0.653,0.653,0.72,0.653,0.653,0.653,0.738],"IN":[0.61,0.36,0.36,0.36,0.36,null,0.36,0.36,0.36,0.61],"IA":[0.325,0.3,0.3,0.265,0.3,0.3,0.265,0.3,0.3,0.298],"KS":[0.26,0.24,0.24,0.24,0.26,0.23,0.17,0.24,0.26,0.26],"KY":[0.22,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.22,0.22],"LA":[0.2,0.2,0.2,0.2,0.2,0.146,0.2,0.2,0.2,0.2],"ME":[0.312,null,null,0.198,0.147,0.219,null,null,null,0.312],"MD":[0.4675,0.46,0.46,0.46,0.46,0.46,0.46,null,null,0.4675],"MA":[0.24,0.24,0.24,0.24,0.24,0.197,0.24,0.24,0.24,0.24],"MI":[0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524],"MN":[0.326,0.326,0.326,0.326,0.326,0.245,0.2315,null,0.326,0.326],"MS":[0.21,0.21,0.21,0.21,0.21,0.17,0.21,0.21,0.21,0.21],"MO":[0.295,0.295,0.295,0.295,null,0.17,0.295,0.295,null,0.295],"MT":[0.2975,null,null,null,null,0.0518,null,null,null,0.2975],"NE":[0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318],"NV":[0.27,0.23,0.23,0.23,0.23,0.064,0.23,null,0.19,0.27],"NH":[0.222,null,null,null,null,0.222,null,null,null,0.222],"NJ":[0.561,0.491,0.491,0.491,0.491,0.4385,0.491,0.491,0.491,0.561],"NM":[0.21,0.12,0.12,0.12,0.12,0.12,0.12,0.12,0.12,0.12],"NY":[0.3805,0.398,0.398,0.398,0.398,0.24,null,0.398,0.398,null],"NC":[0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41],"ND":[0.23,0.23,0.23,null,null,0.23,null,null,null,0.23],"OH":[0.47,0.385,0.385,0.385,0.385,0.47,0.385,0.385,0.47,0.47],"OK":[0.19,0.19,0.19,0.19,0.19,0.16,0.19,0.19,0.19,0.19],"OR":[null,null,null,null,null,null,null,null,null,null],"PA":[0.741,0.576,0.576,0.384,0.289,0.425,0.413,0.332,0.741,0.741],"RI":[0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4],"SC":[0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28],"SD":[0.28,0.28,null,0.14,0.14,0.2,null,null,null,0.28],"TN":[0.27,0.26,0.26,0.26,0.26,0.22,0.26,0.26,0.26,0.27],"TX":[0.2,0.2,0.2,0.2,0.2,null,0.2,0.2,0.2,0.2],"UT":[0.379,0.379,0.379,0.379,0.379,null,0.379,0.379,0.379,0.379],"VT":[0.31,null,null,null,null,null,null,null,null,null],"VA":[0.327,0.317,0.317,0.317,0.317,0.317,0.317,0.317,0.317,0.327],"WA":[0.584,0.554,0.554,0.554,0.554,null,0.554,0.554,0.554,0.584],"WV":[0.357,0.357,0.357,0.357,null,0.194,0.357,0.357,0.357,0.357],"WI":[0.329,0.329,0.329,0.329,0.329,0.226,0.329,0.329,0.329,0.329],"WY":[0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24]},"sur":{"IN":[null,null,null,null,null,0.61,null,null,null,null],"KY":[0.105,0.045,0.045,0.045,0.045,0.045,0.045,0.045,0.105,0.105],"VA":[0.143,0.153,0.153,0.153,0.153,0.153,0.153,0.153,0.153,0.143]}},"2Q2026":{"base":{"AB":[0.3596,0.3596,0.3596,0.3596,0.3596,0.26,0.3596,0.3596,0.3596,0.3596],"BC":[0.415,0.4011,0.4011,0.4011,null,0.0747,0.4011,null,0.415,0.415],"MB":[0.3458,0.3458,0.3458,0.3458,0.3458,0.083,0.3458,0.3458,0.3458,0.3458],"NB":[0.4274,0.3007,0.3007,0.3007,0.3007,0.1853,0.3007,0.3007,0.4274,0.4274],"NL":[0.2628,0.2075,null,null,null,0.1937,null,null,null,null],"NS":[0.426,0.4288,0.4288,null,null,0.1937,null,null,null,0.426],"ON":[0.249,0.249,0.249,0.249,null,null,0.249,0.249,0.249,0.249],"PE":[0.3914,0.2343,0.2343,0.2343,0.2343,null,0.2343,0.2343,0.2343,null],"QC":[0.5588,0.5311,0.5311,0.5588,0.5311,null,0.5588,0.5311,0.5588,0.5588],"SK":[0.415,0.415,0.415,0.415,0.415,0.249,0.415,0.415,0.415,0.415],"AL":[0.31,0.3,0.3,0.3,0.3,0.31,0.3,0.3,0.3,0.31],"AZ":[0.26,0.18,0.18,null,null,null,0.18,0.18,null,0.26],"AR":[0.285,0.247,0.247,0.247,0.247,0.165,0.247,0.247,null,0.285],"CA":[0.971,null,null,0.09,0.09,0.06,0.09,0.09,0.971,0.971],"CO":[0.325,0.27,0.27,0.27,0.27,0.135,0.27,0.27,0.27,0.325],"CT":[0.489,0.25,0.25,0.25,0.25,0.26,0.25,0.25,0.25,0.489],"DE":[0.22,0.23,0.23,0.23,0.23,0.22,0.22,0.22,0.22,0.22],"FL":[0.4097,0.411,0.411,null,null,null,null,null,null,0.4097],"GA":[0.373,0.333,0.333,0.333,0.333,0.333,0.333,0.333,0.333,0.373],"ID":[0.32,null,null,null,null,0.232,null,null,0.32,0.32],"IL":[0.738,0.653,0.653,0.653,0.653,0.72,0.653,0.653,0.653,0.738],"IN":[0.63,0.37,0.37,0.37,0.37,null,0.37,0.37,0.37,0.63],"IA":[0.325,0.3,0.3,0.265,0.3,0.3,0.265,0.3,0.3,0.298],"KS":[0.26,0.24,0.24,0.24,0.26,0.23,0.17,0.24,0.26,0.26],"KY":[0.22,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.22,0.22],"LA":[0.2,0.2,0.2,0.2,0.2,0.146,0.2,0.2,0.2,0.2],"ME":[0.312,null,null,0.198,0.147,0.219,null,null,null,0.312],"MD":[0.4675,0.46,0.46,0.46,0.46,0.46,0.46,null,null,0.4675],"MA":[0.24,0.24,0.24,0.24,0.24,0.25,0.24,0.24,0.24,0.24],"MI":[0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524],"MN":[0.326,0.326,0.326,0.326,0.326,0.245,0.2315,null,0.326,0.326],"MS":[0.21,0.21,0.21,0.21,0.21,0.17,0.21,0.21,0.21,0.21],"MO":[0.295,0.295,0.295,0.295,null,0.17,0.295,0.295,null,0.295],"MT":[0.2975,null,null,null,null,0.0518,null,null,null,0.2975],"NE":[0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318],"NV":[0.27,0.23,0.23,0.23,0.23,0.064,0.23,null,0.19,0.27],"NH":[0.222,null,null,null,null,0.222,null,null,null,0.222],"NJ":[0.561,0.491,0.491,0.491,0.491,0.4385,0.491,0.491,0.491,0.561],"NM":[0.21,0.12,0.12,0.12,0.12,0.12,0.12,0.12,0.12,0.12],"NY":[0.3805,0.397,0.397,0.397,0.397,0.239,null,0.397,0.397,null],"NC":[0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41],"ND":[0.23,0.23,0.23,null,null,0.23,null,null,null,0.23],"OH":[0.47,0.385,0.385,0.385,0.385,0.47,0.385,0.385,0.47,0.47],"OK":[0.19,0.19,0.19,0.19,0.19,0.16,0.19,0.19,0.19,0.19],"OR":[null,null,null,null,null,null,null,null,null,null],"PA":[0.741,0.576,0.576,0.384,0.289,0.425,0.413,0.332,0.741,0.741],"RI":[0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4],"SC":[0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28],"SD":[0.28,0.28,null,0.14,0.14,0.2,null,null,null,0.28],"TN":[0.27,0.26,0.26,0.26,0.26,0.22,0.26,0.26,0.26,0.27],"TX":[0.2,0.2,0.2,0.2,0.2,null,0.2,0.2,0.2,0.2],"UT":[0.379,0.379,0.379,0.379,0.379,null,0.379,0.379,0.379,0.379],"VT":[0.31,null,null,null,null,null,null,null,null,null],"VA":[0.327,0.317,0.317,0.317,0.317,0.317,0.317,0.317,0.317,0.327],"WA":[0.584,0.554,0.554,0.554,0.554,null,0.554,0.554,0.554,0.584],"WV":[0.357,0.357,0.357,0.357,null,0.194,0.357,0.357,0.357,0.357],"WI":[0.329,0.329,0.329,0.329,0.329,0.226,0.329,0.329,0.329,0.329],"WY":[0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24]},"sur":{"IN":[null,null,null,null,null,0.61,null,null,null,null],"KY":[0.105,0.045,0.045,0.045,0.045,0.045,0.045,0.045,0.105,0.105],"VA":[0.143,0.153,0.153,0.153,0.153,0.153,0.153,0.153,0.153,0.143]}},"3Q2026":{"base":{"AB":[0.3519,0.3519,0.3519,0.3519,0.3519,0.2544,0.3519,0.3519,0.3519,0.3519],"BC":[0.406,0.3924,0.3924,0.3924,null,0.0731,0.3924,null,0.406,0.406],"MB":[0.3383,0.3383,0.3383,0.3383,0.3383,0.0812,0.3383,0.3383,0.3383,0.3383],"NB":[0.4182,0.2942,0.2942,0.2942,0.2942,0.1814,0.2942,0.2942,0.4182,0.4182],"NL":[0.2572,0.203,null,null,null,0.1895,null,null,null,null],"NS":[0.4168,0.4196,0.4196,null,null,0.1895,null,null,null,0.4168],"ON":[0.2436,0.2436,0.2436,0.2436,null,null,0.2436,0.2436,0.2436,0.2436],"PE":[0.383,0.2293,0.2293,0.2293,0.2293,null,0.2293,0.2293,0.2293,null],"QC":[0.5468,0.5197,0.5197,0.5468,0.5197,null,0.5468,0.5197,0.5468,0.5468],"SK":[0.406,0.406,0.406,0.406,0.406,0.2436,0.406,0.406,0.406,0.406],"AL":[0.31,0.3,0.3,0.3,0.3,0.31,0.3,0.3,0.3,0.31],"AZ":[0.26,0.18,0.18,null,null,null,0.18,0.18,null,0.26],"AR":[0.285,0.247,0.247,0.247,0.247,0.165,0.247,0.247,null,0.285],"CA":[0.979,null,null,0.09,0.09,0.06,0.09,0.09,0.979,0.979],"CO":[0.335,0.28,0.28,0.28,0.28,0.135,0.28,0.28,0.28,0.335],"CT":[0.499,0.25,0.25,0.25,0.25,0.26,0.25,0.25,0.25,0.499],"DE":[0.22,0.23,0.23,0.23,0.23,0.22,0.22,0.22,0.22,0.22],"FL":[0.4097,0.411,0.411,null,null,null,null,null,null,0.4097],"GA":[0.373,0.333,0.333,0.333,0.333,0.333,0.333,0.333,0.333,0.373],"ID":[0.32,null,null,null,null,0.232,null,null,0.32,0.32],"IL":[0.738,0.653,0.653,0.653,0.653,0.72,0.653,0.653,0.653,0.738],"IN":[0.63,null,null,0.37,0.37,null,0.37,0.37,0.37,0.63],"IA":[0.325,0.3,0.3,0.28,0.3,0.3,0.28,0.3,0.3,0.295],"KS":[0.26,0.24,0.24,0.24,0.26,0.23,0.17,0.24,0.26,0.26],"KY":[0.22,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.22,0.22],"LA":[0.2,0.2,0.2,0.2,0.2,0.146,0.2,0.2,0.2,0.2],"ME":[0.312,null,null,0.198,0.147,0.219,null,null,null,0.312],"MD":[0.4745,0.466,0.466,0.466,0.466,0.466,0.466,null,null,0.4745],"MA":[0.24,0.24,0.24,0.24,0.24,0.254,0.24,0.24,0.24,0.24],"MI":[0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524,0.524],"MN":[0.326,0.326,0.326,0.326,0.326,0.245,0.2315,null,0.326,0.326],"MS":[0.24,0.24,0.24,0.24,0.24,0.17,0.24,0.24,0.24,0.24],"MO":[0.295,0.295,0.295,0.295,null,0.17,0.295,0.295,null,0.295],"MT":[0.2975,null,null,null,null,0.0518,null,null,null,0.2975],"NE":[0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318,0.318],"NV":[0.27,0.23,0.23,0.23,0.23,0.064,0.23,null,0.19,0.27],"NH":[0.222,null,null,null,null,0.222,null,null,null,0.222],"NJ":[0.561,0.491,0.491,0.491,0.491,0.4385,0.491,0.491,0.491,0.561],"NM":[0.21,0.12,0.12,0.12,0.12,0.12,0.12,0.12,0.12,0.12],"NY":[0.3805,0.398,0.398,0.398,0.398,0.24,null,0.398,0.398,null],"NC":[0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41,0.41],"ND":[0.23,0.23,0.23,null,null,0.23,null,null,null,0.23],"OH":[0.47,0.385,0.385,0.385,0.385,0.47,0.385,0.385,0.47,0.47],"OK":[0.19,0.19,0.19,0.19,0.19,0.16,0.19,0.19,0.19,0.19],"OR":[null,null,null,null,null,null,null,null,null,null],"PA":[0.741,0.576,0.576,0.384,0.289,0.425,0.413,0.332,0.741,0.741],"RI":[0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4],"SC":[0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28,0.28],"SD":[0.28,0.28,null,0.14,0.14,0.2,null,null,null,0.28],"TN":[0.27,0.26,0.26,0.26,0.26,0.22,0.26,0.26,0.26,0.27],"TX":[0.2,0.2,0.2,0.2,0.2,null,0.2,0.2,0.2,0.2],"UT":[0.379,0.319,0.319,0.319,0.379,null,0.319,0.379,0.319,0.379],"VT":[0.31,null,null,null,null,null,null,null,null,null],"VA":[0.336,0.326,0.326,0.326,0.326,0.326,0.326,0.326,0.326,0.336],"WA":[0.595,0.565,0.565,0.565,0.565,null,0.565,0.565,0.565,0.595],"WV":[0.357,0.357,0.357,0.357,null,0.194,0.357,0.357,0.357,0.357],"WI":[0.329,0.329,0.329,0.329,0.329,0.226,0.329,0.329,0.329,0.329],"WY":[0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24,0.24]},"sur":{"IN":[null,null,null,null,null,0.63,null,null,null,null],"KY":[0.105,0.045,0.045,0.045,0.045,0.045,0.045,0.045,0.105,0.105],"VA":[0.143,0.153,0.153,0.153,0.153,0.153,0.153,0.153,0.153,0.143]}}}};
+
+const L2G=0.264172;
+const DUE={"1Q2026":"2026-04-30","2Q2026":"2026-07-31","3Q2026":"2026-10-31"};
+const QLABEL={"1Q2026":"Q1 2026","2Q2026":"Q2 2026","3Q2026":"Q3 2026"};
+const FSHORT={DIESEL:"Diesel",GASOLINE:"Gasoline",GASOHOL:"Gasohol",ETHANOL:"Ethanol",METHANOL:"Methanol",PROPANE:"Propane",'E-85':"E-85",'M-85':"M-85",A55:"A55",BIODIESEL:"Biodiesel"};
+
+/* ---- rounding (Excel ROUND, half away from zero) ---- */
+function rnd(x,n){ n=n||0; if(!isFinite(x))return 0; const f=Math.pow(10,n); let v=x*f; v=Math.round(v*1e6)/1e6; const r=v>=0?Math.floor(v+0.5):Math.ceil(v-0.5); return r/f; }
+function money(x){ const n=rnd(x,2); const a=Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return n<0?'('+a+')':a; }
+function intf(x){ const n=Math.round(x); const a=Math.abs(n).toLocaleString('en-US'); return n<0?'('+a+')':a; }
+function ratef(r){ return (r==null)?'—':'$'+r.toFixed(4); }
+function fidx(f){ return DB.fuels.indexOf(f); }
+
+/* ================= STATE ================= */
+let S=null;
+function fresh(){
+  return {step:1, filing:{quarter:'1Q2026', base:'TX', report:'2026-03-31'},
+    vehicles:[
+      {fuel:'DIESEL', niftaMi:0, niftaGal:0, rows:[
+        {jur:'AZ',mi:20000,nt:0,fuel:3000,unit:'G'},{jur:'MI',mi:9000,nt:0,fuel:1500,unit:'G'},
+        {jur:'NM',mi:40000,nt:0,fuel:2000,unit:'G'},{jur:'ON',mi:3000,nt:0,fuel:300,unit:'G'},
+        {jur:'TX',mi:30000,nt:0,fuel:100,unit:'G'},{jur:'VA',mi:15000,nt:0,fuel:500,unit:'G'}]},
+      {fuel:'GASOLINE', niftaMi:0, niftaGal:0, rows:[
+        {jur:'AZ',mi:50000,nt:0,fuel:0,unit:'G'},{jur:'NM',mi:40000,nt:0,fuel:0,unit:'G'},
+        {jur:'TX',mi:30000,nt:0,fuel:12000,unit:'G'}]}
+    ],
+    vi:0, example:true};
+}
+function save(){ try{localStorage.setItem('ifta_bench',JSON.stringify(S));}catch(e){} }
+function load(){ try{const r=localStorage.getItem('ifta_bench'); if(r){const p=JSON.parse(r); if(p&&p.filing&&p.vehicles)return p;}}catch(e){} return null; }
+
+/* ---- past filings history ---- */
+function histLoad(){ try{return JSON.parse(localStorage.getItem('ifta_hist')||'[]');}catch(e){return [];} }
+function histSaveAll(l){ try{localStorage.setItem('ifta_hist',JSON.stringify(l.slice(0,60)));}catch(e){} updHistCount(); }
+function updHistCount(){ const el=document.getElementById('histCount'); if(!el)return; const n=histLoad().length; el.textContent=n?n:''; el.style.display=n?'inline-grid':'none'; }
+function snapshot(res){
+  if(!S.id) S.id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  const fuels=[...new Set(S.vehicles.map(v=>v.fuel))].sort((a,b)=>DB.fuels.indexOf(a)-DB.fuels.indexOf(b));
+  const entry={ id:S.id, ts:Date.now(), quarter:S.filing.quarter, base:S.filing.base, report:S.filing.report,
+    mo:res.mo, vcount:S.vehicles.length, fuels, subtotal:res.subtotal, interest:res.interest,
+    penalty:res.penalty, total:res.total, state:{filing:JSON.parse(JSON.stringify(S.filing)),vehicles:JSON.parse(JSON.stringify(S.vehicles))} };
+  const l=histLoad(); const i=l.findIndex(e=>e.id===S.id);
+  if(i>=0)l[i]=entry; else l.unshift(entry);
+  histSaveAll(l);
+}
+function loadHist(id){ const e=histLoad().find(x=>x.id===id); if(!e)return;
+  S.filing=JSON.parse(JSON.stringify(e.state.filing)); S.vehicles=JSON.parse(JSON.stringify(e.state.vehicles));
+  S.id=e.id; S.example=false; S.step=3; save(); closeHist(); render(); }
+function delHist(id){ histSaveAll(histLoad().filter(e=>e.id!==id)); renderHist(); }
+function renderHist(){
+  const box=document.getElementById('histList'); const l=histLoad();
+  if(!l.length){ box.innerHTML='<div class="empty">No filings yet. Calculate a case and it’ll be saved here.</div>'; return; }
+  box.innerHTML=l.map(e=>{
+    const cur=e.id===S.id?' data-cur="1"':'';
+    const dt=new Date(e.ts);
+    const chips=e.fuels.map(f=>'<span class="fchip">'+FSHORT[f]+'</span>').join('');
+    return `<div class="histitem"${cur}>
+      <div class="hi-main" data-load="${e.id}">
+        <div class="hi-top">
+          <span class="hi-q">${QLABEL[e.quarter]} · ${e.base}</span>
+          <span class="pill ${e.mo>0?'late':'ok'}">${e.mo>0?e.mo+' mo':'on time'}</span>
+        </div>
+        <div class="hi-total mono ${e.total<0?'credit':''}">$${money(e.total)}</div>
+        <div class="hi-meta">${e.vcount} vehicle${e.vcount>1?'s':''} · report ${e.report}</div>
+        <div class="hi-chips">${chips}</div>
+        <div class="hi-nums mono">tax ${money(e.subtotal)} · int ${money(e.interest)} · pen ${money(e.penalty)}</div>
+        <div class="hi-ts">${dt.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}${cur?' · current':''}</div>
+      </div>
+      <button class="hi-del" data-del="${e.id}" title="Delete">🗑</button>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-load]').forEach(el=>el.onclick=()=>loadHist(el.dataset.load));
+  box.querySelectorAll('[data-del]').forEach(el=>el.onclick=e=>{e.stopPropagation();delHist(el.dataset.del);});
+}
+function openHist(){ renderHist(); document.getElementById('histPanel').dataset.open=1; document.getElementById('histBack').dataset.open=1; }
+function closeHist(){ document.getElementById('histPanel').dataset.open=0; document.getElementById('histBack').dataset.open=0; }
+
+/* ================= HELPERS ================= */
+function monthsOverdue(reportStr, quarter){
+  const due=new Date(DUE[quarter]+'T00:00:00'); const rp=new Date(reportStr+'T00:00:00');
+  if(isNaN(rp)||rp<=due) return 0;
+  return (rp.getFullYear()-due.getFullYear())*12 + (rp.getMonth()-due.getMonth());
+}
+function toGal(row){ return row.unit==='L'? rnd((+row.fuel||0)*L2G,2) : rnd(+row.fuel||0,2); }
+
+/* ================= ENGINE ================= */
+function compute(){
+  const q=S.filing.quarter; const base=DB.rates[q].base, sur=DB.rates[q].sur;
+  const mo=monthsOverdue(S.filing.report,q); const im=0.09/12;
+  const usedFuels=[...new Set(S.vehicles.map(v=>v.fuel))].sort((a,b)=>DB.fuels.indexOf(a)-DB.fuels.indexOf(b));
+  const blocks=[];
+  for(const F of usedFuels){
+    const fi=fidx(F); const vehs=S.vehicles.filter(v=>v.fuel===F);
+    // aggregate raw contributions per jurisdiction (sum-then-round)
+    const agg={}; let totMiRaw=0, totGalRaw=0, niftaMiRaw=0, niftaGalRaw=0;
+    vehs.forEach((v,vIdx)=>{
+      v.rows.forEach(r=>{ if(!r.jur)return; const j=r.jur;
+        const g=toGal(r);
+        agg[j]=agg[j]||{mi:0,nt:0,gal:0,contrib:[]};
+        agg[j].mi+=(+r.mi||0); agg[j].nt+=(+r.nt||0); agg[j].gal+=g;
+        agg[j].contrib.push({v:vIdx+1,mi:+r.mi||0,nt:+r.nt||0,gal:g,unit:r.unit,raw:+r.fuel||0});
+        totMiRaw+=(+r.mi||0); totGalRaw+=g;
+      });
+      niftaMiRaw+=(+v.niftaMi||0); niftaGalRaw+=(+v.niftaGal||0);
+    });
+    const totIftaMi=rnd(totMiRaw,0), niftaMi=rnd(niftaMiRaw,0);
+    const totIftaGal=rnd(totGalRaw,0), niftaGal=rnd(niftaGalRaw,0);
+    const totalMi=totIftaMi+niftaMi, totalGal=totIftaGal+niftaGal;
+    const mpg= totalGal? rnd(totalMi/totalGal,2):0;
+    const rows=[];
+    Object.keys(agg).sort().forEach(j=>{
+      const a=agg[j];
+      const B=rnd(a.mi,0), C=rnd(a.nt,0), D=rnd(a.gal,0);
+      const Fm=rnd(B-C,0);
+      const G= mpg? rnd(Fm/mpg,0):0;
+      const H=rnd(G-D,0);
+      const rate= base[j]? base[j][fi] : null;
+      const J=rnd(H*(rate||0),2);
+      rows.push({jur:j,B,C,D,F:Fm,G,H,rate,J,contrib:a.contrib});
+    });
+    const jmap={}; rows.forEach(r=>jmap[r.jur]=r);
+    // surcharge rows
+    const srows=[];
+    ['IN','KY','VA'].forEach(st=>{
+      if(!jmap[st])return;
+      const G=jmap[st].G; const srate= sur[st]? sur[st][fi]:null;
+      const J=rnd(G*(srate||0),2);
+      srows.push({jur:st,label:st+' (Surcharge)',G,rate:srate,J,regDue:jmap[st].J});
+    });
+    const smap={}; srows.forEach(s=>smap[s.jur]=s);
+    // interest
+    rows.forEach(r=>{
+      const D=r.J;
+      if(r.jur==='IN'||r.jur==='KY'||r.jur==='VA'){
+        const s=smap[r.jur]; const Sd=s?s.J:0;
+        if(D>0&&Sd>0){ r.K=rnd(Math.max(0,D)*im*mo,2); r.ibranch='both'; }
+        else if(D+Sd>0){ r.K=rnd((D+Sd)*im*mo,2); r.ibranch='net'; r.net=D+Sd; r.Sd=Sd; }
+        else { r.K=0; r.ibranch='none'; r.net=D+Sd; r.Sd=Sd; }
+      } else { r.K=rnd(Math.max(0,D)*im*mo,2); r.ibranch='plain'; }
+      r.L=rnd(r.J+r.K,2);
+    });
+    srows.forEach(s=>{
+      if(s.regDue>0&&s.J>0){ s.K=rnd(Math.max(0,s.J)*im*mo,2); s.ibranch='both'; }
+      else { s.K=0; s.ibranch=(s.regDue+s.J>0)?'onreg':'none'; }
+      s.L=rnd(s.J+s.K,2);
+    });
+    const subJ=rnd(rows.reduce((t,r)=>t+r.J,0)+srows.reduce((t,s)=>t+s.J,0),2);
+    const subK=rnd(rows.reduce((t,r)=>t+r.K,0)+srows.reduce((t,s)=>t+s.K,0),2);
+    blocks.push({fuel:F,mpg,rows,srows,subJ,subK,totIftaMi,niftaMi,totIftaGal,niftaGal,totalMi,totalGal,
+      totMiRaw,totGalRaw,niftaMiRaw,niftaGalRaw,vcount:vehs.length});
+  }
+  const subtotal=rnd(blocks.reduce((t,b)=>t+b.subJ,0),2);
+  const interest=rnd(blocks.reduce((t,b)=>t+b.subK,0),2);
+  const penalty= mo>0 ? Math.max(50, rnd(0.1*Math.max(0,subtotal),2)) : 0;
+  const total=rnd(subtotal+interest+penalty,2);
+  return {blocks,subtotal,interest,penalty,total,mo,im,q};
+}
+
+/* ================= RENDER: stepper ================= */
+const STEPS=['Filing','Vehicle data','Results'];
+function renderStepper(){
+  const el=document.getElementById('stepper'); el.innerHTML='';
+  STEPS.forEach((name,i)=>{
+    const n=i+1; const on=S.step===n?1:0; const done=S.step>n?1:0;
+    const d=document.createElement('div'); d.className='step-chip';
+    d.dataset.on=on; d.dataset.done=done;
+    d.innerHTML='<span class="n"><span>'+n+'</span></span>'+name;
+    if(done||on){ d.onclick=()=>{ if(n<=maxReachable()){S.step=n; render();} }; }
+    el.appendChild(d);
+  });
+}
+function maxReachable(){ return 3; }
+
+/* ================= RENDER: dispatch ================= */
+function render(){ save(); renderStepper();
+  const v=document.getElementById('view');
+  if(S.step===1) v.innerHTML='', v.appendChild(viewFiling());
+  else if(S.step===2) v.innerHTML='', v.appendChild(viewVehicle());
+  else v.innerHTML='', v.appendChild(viewResults());
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---- Step 1: filing ---- */
+function viewFiling(){
+  const c=document.createElement('div'); c.className='card pad';
+  const mo=monthsOverdue(S.filing.report,S.filing.quarter);
+  const late=mo>0;
+  let opts=''; for(let i=1;i<=30;i++)opts+=`<option value="${i}">${i} vehicle${i>1?'s':''}</option>`;
+  c.innerHTML=`
+    <div class="eyebrow">Step 1 · Filing</div>
+    <h1 class="h-lead">Set up the return</h1>
+    <div class="grid-f">
+      <div class="field">
+        <label for="f-q">Quarter</label>
+        <select id="f-q">
+          <option value="1Q2026">Q1 2026 (due Apr 30)</option>
+          <option value="2Q2026">Q2 2026 (due Jul 31)</option>
+          <option value="3Q2026">Q3 2026 (due Oct 31)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-base">Base jurisdiction</label>
+        <input list="jlist" id="f-base" placeholder="Search…" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-report">Report date</label>
+        <input type="date" id="f-report">
+      </div>
+      <div class="field">
+        <label for="f-count">Vehicles</label>
+        <select id="f-count">${opts}</select>
+      </div>
+    </div>
+    <div class="readrow">
+      <div class="readout"><span>Due</span><b id="r-due">—</b></div>
+      <div class="readout"><span>Overdue</span><b id="r-mo">—</b></div>
+      <div class="readout"><span>Interest/mo</span><b>0.75%</b></div>
+      <span class="pill ${late?'late':'ok'}" id="r-status" style="align-self:center"></span>
+    </div>
+    <div class="navbar">
+      <div class="spacer"></div>
+      <button class="btn primary" id="to2">Enter vehicle data →</button>
+    </div>`;
+  buildJlist(c);
+  const q=c.querySelector('#f-q'), base=c.querySelector('#f-base'), rep=c.querySelector('#f-report'), cnt=c.querySelector('#f-count');
+  q.value=S.filing.quarter; base.value=S.filing.base?(S.filing.base+' — '+(DB.names[S.filing.base]||'')):''; rep.value=S.filing.report;
+  cnt.value=Math.min(30,Math.max(1,S.vehicles.length));
+  function upd(){ S.filing.quarter=q.value; S.filing.report=rep.value||S.filing.report;
+    const code=parseJur(base.value); if(code)S.filing.base=code;
+    const m=monthsOverdue(S.filing.report,S.filing.quarter);
+    c.querySelector('#r-due').textContent=new Date(DUE[S.filing.quarter]+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    c.querySelector('#r-mo').textContent=m+' mo';
+    const st=c.querySelector('#r-status'); st.className='pill '+(m>0?'late':'ok');
+    st.textContent=m>0?('● Late · '+m+' mo'):'● On time';
+    save();
+  }
+  function setCount(){ let n=Math.max(1,Math.min(30,parseInt(cnt.value)||1));
+    while(S.vehicles.length<n) S.vehicles.push({fuel:'DIESEL',niftaMi:0,niftaGal:0,rows:[blankRow()]});
+    if(S.vehicles.length>n) S.vehicles=S.vehicles.slice(0,n); save(); }
+  q.onchange=upd; rep.onchange=upd; base.onchange=upd; cnt.onchange=()=>{S.example=false;setCount();}; upd();
+  c.querySelector('#to2').onclick=()=>{ upd(); setCount(); S.vi=0; S.step=2; render(); };
+  return c;
+}
+function buildJlist(scope){
+  if(document.getElementById('jlist'))return;
+  const dl=document.createElement('datalist'); dl.id='jlist';
+  DB.order.forEach(code=>{ const o=document.createElement('option'); o.value=code+' — '+DB.names[code]; dl.appendChild(o); });
+  document.body.appendChild(dl);
+}
+function parseJur(s){ if(!s)return null; const m=String(s).trim().match(/^([A-Za-z]{2})\b/); if(m){const c=m[1].toUpperCase(); if(DB.order.includes(c))return c;}
+  const t=String(s).trim().toLowerCase(); for(const code of DB.order){ if(DB.names[code].toLowerCase()===t)return code; } return null; }
+
+function blankRow(){ return {jur:'',mi:'',nt:'',fuel:'',unit:'G'}; }
+
+/* ---- Step 2: per-vehicle ---- */
+function viewVehicle(){
+  const c=document.createElement('div');
+  const N=S.vehicles.length; if(S.vi>=N)S.vi=N-1; if(S.vi<0)S.vi=0;
+  const v=S.vehicles[S.vi];
+  const card=document.createElement('div'); card.className='card pad';
+  // header + dots
+  let dots=''; S.vehicles.forEach((vv,i)=>{ const filled=vv.rows.some(r=>r.jur)?1:0;
+    dots+=`<button class="vdot" data-on="${i===S.vi?1:0}" data-filled="${filled}" data-i="${i}">${i+1}</button>`; });
+  card.innerHTML=`
+    <div class="veh-head">
+      <div class="eyebrow" style="margin:0">Step 2 · Vehicle ${S.vi+1} / ${N}</div>
+      <div style="flex:1"></div>
+      <div class="veh-dots">${dots}</div>
+    </div>
+    <label style="font-size:12px;font-weight:600;display:block;margin:4px 0 2px">Fuel type</label>
+    <div class="fuelgrid" id="fuelgrid"></div>
+    <div class="paste-hint">📋 Paste from Excel: copy your cells and paste into any grid cell — it fills across rows &amp; columns. Column order: <b>Jurisdiction · IFTA miles · Non-taxable · Fuel · Unit</b> (last two optional).</div>
+    <div class="jw"><table class="jtable" id="jt">
+      <thead><tr>
+        <th style="width:34%">Jurisdiction</th><th style="width:15%">Total IFTA mi</th>
+        <th style="width:14%">Non-taxable mi</th><th style="width:14%">Fuel purchased</th>
+        <th style="width:13%">Unit</th><th style="width:5%"></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <button class="btn ghost sm addrow" id="addrow">＋ Add jurisdiction</button>
+    <button class="btn ghost sm addrow" id="vimport" style="margin-left:8px">⤵ Paste rows</button>
+    <div class="veh-foot">
+      <div class="mini-field"><label>Non-IFTA miles (this vehicle)</label><input type="number" id="nmi" class="mono" step="any"></div>
+      <div class="mini-field"><label>Non-IFTA fuel — gallons</label><input type="number" id="ngal" class="mono" step="any"></div>
+      <div style="flex:1"></div>
+    </div>
+    <div class="navbar">
+      <button class="btn ghost" id="vprev">← ${S.vi===0?'Filing':'Vehicle '+S.vi}</button>
+      <div class="spacer"></div>
+      <button class="btn ${S.vi===N-1?'primary':'ghost'}" id="vnext">${S.vi===N-1?'Calculate tax →':'Vehicle '+(S.vi+2)+' →'}</button>
+    </div>`;
+  // fuel options
+  const fg=card.querySelector('#fuelgrid');
+  DB.fuels.forEach(F=>{ const b=document.createElement('button'); b.className='fuelopt'; b.dataset.on=v.fuel===F?1:0; b.textContent=FSHORT[F];
+    b.onclick=()=>{ v.fuel=F; S.example=false; save(); render(); }; fg.appendChild(b); });
+  // rows
+  const tb=card.querySelector('#jt tbody');
+  function drawRows(){ tb.innerHTML='';
+    v.rows.forEach((r,ri)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><input list="jlist" class="jin" data-col="0" value="${r.jur?r.jur+' — '+(DB.names[r.jur]||''):''}" placeholder="Search…" autocomplete="off"></td>
+        <td class="num"><input type="number" class="mi" data-col="1" step="any" value="${r.mi}"></td>
+        <td class="num"><input type="number" class="nt" data-col="2" step="any" value="${r.nt}"></td>
+        <td class="num"><input type="number" class="fu" data-col="3" step="any" value="${r.fuel}"><div class="conv"></div></td>
+        <td><select class="un" data-col="4"><option value="G">Gallons</option><option value="L">Liters</option></select></td>
+        <td><button class="rm" title="Remove">✕</button></td>`;
+      const jin=tr.querySelector('.jin'), mi=tr.querySelector('.mi'), nt=tr.querySelector('.nt'),
+            fu=tr.querySelector('.fu'), un=tr.querySelector('.un'), conv=tr.querySelector('.conv');
+      un.value=r.unit;
+      function convtxt(){ if(r.unit==='L'&&(+r.fuel)){ conv.textContent='= '+rnd((+r.fuel)*L2G,2).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' gal'; } else conv.textContent=''; }
+      convtxt();
+      jin.onchange=()=>{ const c2=parseJur(jin.value); r.jur=c2||''; if(c2)jin.value=c2+' — '+DB.names[c2]; S.example=false; save(); updDots(); };
+      mi.oninput=()=>{r.mi=mi.value;S.example=false;}; mi.onchange=save;
+      nt.oninput=()=>{r.nt=nt.value;}; nt.onchange=save;
+      fu.oninput=()=>{r.fuel=fu.value;convtxt();}; fu.onchange=save;
+      un.onchange=()=>{r.unit=un.value;convtxt();save();};
+      tr.querySelector('.rm').onclick=()=>{ v.rows.splice(ri,1); if(!v.rows.length)v.rows.push(blankRow()); save(); drawRows(); };
+      tb.appendChild(tr);
+    });
+  }
+  drawRows();
+  // Excel-style paste: copy cells from a sheet, paste into any grid cell — spills across rows & columns
+  function cleanNum(x){ const n=parseFloat(String(x).replace(/[$,%\s]/g,'')); return isNaN(n)?'':n; }
+  function setCell(row,col,val){ val=(val==null?'':String(val)).trim();
+    if(col===0){ const cc=parseJur(val); if(cc)row.jur=cc; }
+    else if(col===1) row.mi=cleanNum(val);
+    else if(col===2) row.nt=cleanNum(val);
+    else if(col===3) row.fuel=cleanNum(val);
+    else if(col===4){ const u=val.toUpperCase(); if(u)row.unit=(u[0]==='L')?'L':'G'; } }
+  card.querySelector('#jt').addEventListener('paste',e=>{
+    const el=e.target; if(!el||el.dataset.col===undefined) return;
+    const text=(e.clipboardData||window.clipboardData).getData('text');
+    if(text.indexOf('\t')<0 && text.indexOf('\n')<0) return; // single value → normal paste
+    e.preventDefault();
+    const startCol=+el.dataset.col;
+    const tr=el.closest('tr'); const startRi=[...tr.parentNode.children].indexOf(tr);
+    const grid=text.replace(/\r/g,'').replace(/\n+$/,'').split('\n').map(r=>r.split('\t'));
+    let n=0;
+    grid.forEach((cells,r)=>{
+      // when pasting into the jurisdiction column, skip any row whose first cell isn't a jurisdiction (e.g. a header)
+      if(startCol===0 && !parseJur(cells[0])) return;
+      const ri=startRi+n; while(v.rows.length<=ri) v.rows.push(blankRow());
+      cells.forEach((val,ci)=>setCell(v.rows[ri],startCol+ci,val));
+      n++;
+    });
+    if(!n){ toast('Nothing pasted — check the column order'); return; }
+    S.example=false; save(); drawRows();
+    toast('Pasted '+n+' row'+(n>1?'s':'')+' from clipboard');
+  });
+  function updDots(){ card.querySelectorAll('.vdot').forEach(d=>{ const i=+d.dataset.i; d.dataset.filled=S.vehicles[i].rows.some(r=>r.jur)?1:0; }); }
+  card.querySelector('#addrow').onclick=()=>{ v.rows.push(blankRow()); save(); drawRows(); };
+  card.querySelector('#vimport').onclick=()=>openImport();
+  const nmi=card.querySelector('#nmi'), ngal=card.querySelector('#ngal');
+  nmi.value=v.niftaMi||''; ngal.value=v.niftaGal||'';
+  nmi.oninput=()=>{v.niftaMi=+nmi.value||0;}; nmi.onchange=save;
+  ngal.oninput=()=>{v.niftaGal=+ngal.value||0;}; ngal.onchange=save;
+  card.querySelectorAll('.vdot').forEach(d=>d.onclick=()=>{S.vi=+d.dataset.i;render();});
+  card.querySelector('#vprev').onclick=()=>{ if(S.vi===0){S.step=1;} else S.vi--; render(); };
+  card.querySelector('#vnext').onclick=()=>{ if(S.vi===N-1){S.step=3;} else S.vi++; render(); };
+  c.appendChild(card);
+  return c;
+}
+
+/* ---- Step 4: results ---- */
+let R=null;
+function viewResults(){
+  R=compute();
+  snapshot(R);
+  const c=document.createElement('div');
+  const head=document.createElement('div'); head.className='card pad';
+  const f=S.filing;
+  head.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="eyebrow" style="margin:0">Step 3 · Results · ${QLABEL[R.q]} · ${f.base}</div>
+      <span class="pill ${R.mo>0?'late':'ok'}">${R.mo>0?'● '+R.mo+' mo overdue':'● On time'}</span>
+      <div style="flex:1"></div>
+      <button class="btn ghost sm" id="xlsx">⤓ Export Excel</button>
+    </div>
+    <div class="tiles">
+      <div class="tile due"><div class="strip"></div><div class="tl">Subtotal tax / (credit)</div><div class="tv ${R.subtotal<0?'credit':''}">$${money(R.subtotal)}</div></div>
+      <div class="tile int"><div class="strip"></div><div class="tl">Interest</div><div class="tv val" data-t="sum-int">$${money(R.interest)}</div></div>
+      <div class="tile pen"><div class="strip"></div><div class="tl">Penalty</div><div class="tv val" data-t="sum-pen">$${money(R.penalty)}</div></div>
+      <div class="tile total"><div class="strip"></div><div class="tl">Total due / (credit)</div><div class="tv ${R.total<0?'credit':''}">$${money(R.total)}</div></div>
+    </div>`;
+  c.appendChild(head);
+  // fuel-type summary list (collapsed by default)
+  const list=document.createElement('div'); list.className='fuellist';
+  list.innerHTML=`<div class="fl-head"><span>Fuel type</span><span>Juris.</span><span>Tax / (credit)</span><span>Interest</span><span>Row total</span></div>`;
+  R.blocks.forEach((b,bi)=>list.appendChild(fuelSection(b,bi)));
+  c.appendChild(list);
+  const nav=document.createElement('div'); nav.className='navbar';
+  nav.innerHTML='<button class="btn ghost" id="edit">← Edit vehicles</button><div class="spacer"></div><button class="btn ghost sm" id="xlsx2">⤓ Export Excel</button>';
+  c.appendChild(nav);
+  nav.querySelector('#edit').onclick=()=>{S.step=2;render();};
+  head.querySelector('#xlsx').onclick=exportXlsx; nav.querySelector('#xlsx2').onclick=exportXlsx;
+  // wire traces
+  setTimeout(()=>wireTraces(c),0);
+  return c;
+}
+function fuelSection(b,bi){
+  const item=document.createElement('div'); item.className='fl-item';
+  const rowTot=rnd(b.subJ+b.subK,2);
+  const bar=document.createElement('div'); bar.className='fl-bar';
+  bar.innerHTML=`
+    <span class="fl-name"><span class="chev">▸</span>${FSHORT[b.fuel]}${b.vcount>1?'<span class="tag">'+b.vcount+' veh</span>':''}</span>
+    <span class="mono">${b.rows.length}</span>
+    <span class="mono ${b.subJ<0?'credit':''}">${money(b.subJ)}</span>
+    <span class="mono">${money(b.subK)}</span>
+    <span class="mono ${rowTot<0?'credit':''}">${money(rowTot)}</span>`;
+  item.appendChild(bar);
+  const det=document.createElement('div'); det.className='fl-det hidden';
+  const merged='';
+  let rowsHtml='';
+  b.rows.forEach((r,ri)=>{
+    rowsHtml+=`<tr>
+      <td>${r.jur} <span style="color:var(--faint);font-weight:400">${DB.names[r.jur]||''}</span></td>
+      <td><span class="val" data-t="B" data-b="${bi}" data-r="${ri}">${intf(r.B)}</span></td>
+      <td><span class="val" data-t="C" data-b="${bi}" data-r="${ri}">${intf(r.C)}</span></td>
+      <td><span class="val" data-t="D" data-b="${bi}" data-r="${ri}">${intf(r.D)}</span></td>
+      <td><span class="val" data-t="F" data-b="${bi}" data-r="${ri}">${intf(r.F)}</span></td>
+      <td><span class="val" data-t="G" data-b="${bi}" data-r="${ri}">${intf(r.G)}</span></td>
+      <td><span class="val ${r.H<0?'credit':''}" data-t="H" data-b="${bi}" data-r="${ri}">${intf(r.H)}</span></td>
+      <td><span class="val ${r.rate==null?'rate-na':''}" data-t="I" data-b="${bi}" data-r="${ri}">${ratef(r.rate)}</span></td>
+      <td><span class="val ${r.J<0?'credit':''}" data-t="J" data-b="${bi}" data-r="${ri}">${money(r.J)}</span></td>
+      <td><span class="val" data-t="K" data-b="${bi}" data-r="${ri}">${money(r.K)}</span></td>
+      <td><span class="val ${r.L<0?'credit':''}" data-t="L" data-b="${bi}" data-r="${ri}">${money(r.L)}</span></td>
+    </tr>`;
+  });
+  b.srows.forEach((s,si)=>{
+    rowsHtml+=`<tr class="surch">
+      <td>${s.label}</td><td></td><td></td><td></td><td></td>
+      <td><span class="val" data-t="sG" data-b="${bi}" data-s="${si}">${intf(s.G)}</span></td>
+      <td></td>
+      <td><span class="val ${s.rate==null?'rate-na':''}" data-t="sI" data-b="${bi}" data-s="${si}">${ratef(s.rate)}</span></td>
+      <td><span class="val ${s.J<0?'credit':''}" data-t="sJ" data-b="${bi}" data-s="${si}">${money(s.J)}</span></td>
+      <td><span class="val" data-t="sK" data-b="${bi}" data-s="${si}">${money(s.K)}</span></td>
+      <td><span class="val ${s.L<0?'credit':''}" data-t="sL" data-b="${bi}" data-s="${si}">${money(s.L)}</span></td>
+    </tr>`;
+  });
+  rowsHtml+=`<tr class="subtot">
+    <td>SUBTOTAL</td><td colspan="7"></td>
+    <td><span class="${b.subJ<0?'credit':''}">${money(b.subJ)}</span></td>
+    <td>${money(b.subK)}</td>
+    <td><span class="${(b.subJ+b.subK)<0?'credit':''}">${money(b.subJ+b.subK)}</span></td>
+  </tr>`;
+  det.innerHTML=`
+    <div class="mpgline">Fleet MPG <span class="val" data-t="mpg" data-b="${bi}" style="color:var(--accent-ink)">${b.mpg.toFixed(2)}</span> · ${intf(b.totalMi)} mi ÷ ${intf(b.totalGal)} gal</div>
+    <div class="rt-wrap"><table class="rt">
+      <thead><tr>
+        <th>Jur.</th><th>IFTA mi</th><th>Non-tax</th><th>Fuel gal</th><th>Tax mi</th>
+        <th>Tax gal</th><th>Net gal</th><th>Rate</th><th>Tax / (credit)</th><th>Interest</th><th>Row total</th>
+      </tr></thead><tbody>${rowsHtml}</tbody>
+    </table></div>`;
+  item.appendChild(det);
+  bar.onclick=()=>{ const open=det.classList.toggle('hidden')===false; bar.classList.toggle('open',open);
+    if(open) wireTraces(det); };
+  return item;
+}
+
+/* ================= TRACES ================= */
+function wireTraces(scope){
+  scope.querySelectorAll('.val').forEach(el=>{
+    el.onclick=()=>{ scope.querySelectorAll('.val.sel').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); showTrace(el.dataset); };
+  });
+}
+function fnum(x,d){ return (d!=null)? (+x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}) : intf(x); }
+function step(lbl,html){ return `<div class="tstep"><div class="lbl">${lbl}</div><div class="formula">${html}</div></div>`; }
+function hl(x){return '<span class="hl">'+x+'</span>';}
+function res(x){return '<span class="res">'+x+'</span>';}
+const EQ='<span class="eq">=</span>';
+
+function showTrace(d){
+  const t=d.t; let title='',kind='CALCULATION',big='',body='';
+  const b=R.blocks[+d.b];
+  const mo=R.mo, im=R.im, imPct='0.75%';
+  const contribBox=(r)=>{
+    if(!r.contrib||r.contrib.length<2)return '';
+    let s='<div class="contribs"><span style="color:var(--ink);font-weight:600">Contributions (sum-then-round):</span>';
+    r.contrib.forEach(ct=>{ s+=`<span>Vehicle ${ct.v}: ${fnum(ct.mi)} mi · ${fnum(ct.nt)} non-tax · ${ct.unit==='L'?fnum(ct.raw,2)+' L → '+fnum(ct.gal,2)+' gal':fnum(ct.gal,2)+' gal'}</span>`; });
+    s+='</div>'; return s;
+  };
+  if(t==='mpg'){
+    title='Fleet MPG — '+FSHORT[b.fuel]; big=b.mpg.toFixed(2);
+    body=step('Total miles (IFTA + non-IFTA)', `${hl(intf(b.totIftaMi))} ${EQ} ROUND(Σ raw IFTA miles) ; +${hl(intf(b.niftaMi))} non-IFTA ${EQ} ${res(intf(b.totalMi))} mi`)
+      + step('Total gallons (IFTA + non-IFTA)', `${hl(intf(b.totIftaGal))} ${EQ} ROUND(Σ raw purchased gal) ; +${hl(intf(b.niftaGal))} non-IFTA ${EQ} ${res(intf(b.totalGal))} gal`)
+      + step('Fleet MPG', `ROUND( ${hl(intf(b.totalMi))} ${EQ.replace('=','÷')} ${hl(intf(b.totalGal))} , 2 ) ${EQ} ROUND(${(b.totalMi/b.totalGal).toFixed(4)}, 2) ${EQ} ${res(b.mpg.toFixed(2))}`)
+      + `<div class="note">MPG is computed once per fuel type from whole-mile / whole-gallon totals, then held at 2 decimals for every jurisdiction’s Taxable-gallons step.</div>`;
+  } else if(d.s!=null){
+    const s=b.srows[+d.s]; const reg=b.rows.find(r=>r.jur===s.jur);
+    if(t==='sG'){ title=s.label+' — taxable gallons'; big=intf(s.G);
+      body=step('Gross taxable gallons for '+s.jur,`Σ Taxable gallons where jurisdiction = ${hl(s.jur)} (gross — no fuel credit) ${EQ} ${res(intf(s.G))}`)
+        +`<div class="note">Surcharge is charged on <b>gross</b> taxable gallons, so it reuses the ${s.jur} row’s Taxable-gallons figure (${intf(s.G)}), not the net.</div>`;
+    } else if(t==='sI'){ title=s.label+' — surcharge rate'; big=ratef(s.rate);
+      body=step('iftach '+QLABEL[R.q]+' surcharge matrix',`${s.jur} surcharge · ${FSHORT[b.fuel]} ${EQ} ${res(ratef(s.rate))}${s.rate==null?' (not taxed)':''}`);
+    } else if(t==='sJ'){ title=s.label+' — surcharge due'; big=money(s.J);
+      body=step('Surcharge due',`ROUND( Taxable gal ${hl(intf(s.G))} × rate ${hl(ratef(s.rate))} , 2 ) ${EQ} ${res('$'+money(s.J))}`);
+    } else if(t==='sK'){ title=s.label+' — interest'; big=money(s.K); kind='INTEREST · §NET-POSITION';
+      body=surchInterest(s,reg,mo,im,imPct);
+    } else if(t==='sL'){ title=s.label+' — row total'; big=money(s.L);
+      body=step('Row total',`Surcharge due ${hl('$'+money(s.J))} + interest ${hl('$'+money(s.K))} ${EQ} ${res('$'+money(s.L))}`);
+    }
+  } else if(d.r!=null){
+    const r=b.rows[+d.r]; const jn=DB.names[r.jur]||'';
+    if(t==='B'){ title=r.jur+' — Total IFTA miles'; big=intf(r.B);
+      body=step('Sum-then-round',`ROUND( Σ raw IFTA miles for ${hl(r.jur)} , 0 ) ${EQ} ${res(intf(r.B))}`)+contribBox(r);
+    } else if(t==='C'){ title=r.jur+' — Non-taxable miles'; big=intf(r.C);
+      body=step('Sum-then-round',`ROUND( Σ raw non-taxable miles for ${hl(r.jur)} , 0 ) ${EQ} ${res(intf(r.C))}`)+contribBox(r);
+    } else if(t==='D'){ title=r.jur+' — Fuel purchased (gal)'; big=intf(r.D);
+      body=step('Sum-then-round (Liters → gallons first, at 2 dp)',`ROUND( Σ raw purchased gallons for ${hl(r.jur)} , 0 ) ${EQ} ${res(intf(r.D))}`)+contribBox(r)
+        +`<div class="note">Liters convert per row at ×0.264172 rounded to 2 dp, then all vehicles’ gallons are summed and rounded once to a whole gallon.</div>`;
+    } else if(t==='F'){ title=r.jur+' — Taxable miles'; big=intf(r.F);
+      body=step('Taxable miles',`ROUND( IFTA mi ${hl(intf(r.B))} − non-taxable ${hl(intf(r.C))} , 0 ) ${EQ} ${res(intf(r.F))}`);
+    } else if(t==='G'){ title=r.jur+' — Taxable gallons'; big=intf(r.G);
+      body=step('Taxable gallons',`ROUND( Taxable mi ${hl(intf(r.F))} ÷ Fleet MPG ${hl(b.mpg.toFixed(2))} , 0 ) ${EQ} ROUND(${b.mpg?(r.F/b.mpg).toFixed(2):'0'}, 0) ${EQ} ${res(intf(r.G))}`);
+    } else if(t==='H'){ title=r.jur+' — Net taxable gallons'; big=intf(r.H);
+      body=step('Net taxable gallons',`ROUND( Taxable gal ${hl(intf(r.G))} − Fuel purchased ${hl(intf(r.D))} , 0 ) ${EQ} ${res(intf(r.H))}`)
+        +`<div class="note">${r.H<0?'Negative → a credit (more tax-paid fuel bought here than consumed).':'Positive → tax is owed on these gallons.'}</div>`;
+    } else if(t==='I'){ title=r.jur+' — Tax rate'; big=ratef(r.rate);
+      body=step('iftach '+QLABEL[R.q]+' rate matrix',`${r.jur} · ${FSHORT[b.fuel]} ${EQ} ${res(ratef(r.rate))}${r.rate==null?' (not taxed in '+r.jur+')':''}`);
+    } else if(t==='J'){ title=r.jur+' — Tax / (credit) due'; big=money(r.J);
+      body=step('Tax due',`ROUND( Net taxable gal ${hl(intf(r.H))} × rate ${hl(ratef(r.rate))} , 2 ) ${EQ} ${res('$'+money(r.J))}`);
+    } else if(t==='K'){ title=r.jur+' — Interest'; big=money(r.K); kind='INTEREST'+((r.jur==='IN'||r.jur==='KY'||r.jur==='VA')?' · §NET-POSITION':'');
+      body=regInterest(r,b,mo,im,imPct);
+    } else if(t==='L'){ title=r.jur+' — Row total due'; big=money(r.L);
+      body=step('Row total',`Tax due ${hl('$'+money(r.J))} + interest ${hl('$'+money(r.K))} ${EQ} ${res('$'+money(r.L))}`);
+    }
+  } else if(t==='sum-int'){ title='Total interest'; big=money(R.interest); kind='INTEREST';
+    let ls=R.blocks.map(bl=>`<span>${FSHORT[bl.fuel]}: $${money(bl.subK)}</span>`).join('');
+    body=step('Σ interest across fuel blocks',`${ls} ${EQ} ${res('$'+money(R.interest))}`)
+      +`<div class="note">Interest / month = 9% ÷ 12 = <b>0.75%</b>, applied over <b>${mo}</b> month${mo!==1?'s':''} overdue.</div>`;
+  } else if(t==='sum-pen'){ title='Penalty'; big=money(R.penalty); kind='PENALTY';
+    if(mo>0){ body=step('Greater of $50 or 10% of net tax due',`MAX( $50 , 10% × MAX(0, subtotal ${hl('$'+money(R.subtotal))}) ) ${EQ} MAX(50, ${money(0.1*Math.max(0,R.subtotal))}) ${EQ} ${res('$'+money(R.penalty))}`)
+      +`<div class="note">The $50 floor applies whenever 10% of the (net) tax due is below $50 — including when the fleet nets to an overall credit.</div>`; }
+    else body=`<div class="note">On-time filing (0 months overdue) → no penalty.</div>`;
+  }
+  document.getElementById('trKind').textContent=kind;
+  document.getElementById('trTitle').textContent=title;
+  const bigEl=document.getElementById('trBig'); bigEl.textContent=(kind.startsWith('INTEREST')||kind==='PENALTY'||t==='J'||t==='L'||t==='sJ'||t==='sK'||t==='sL'||t==='sum-int'||t==='sum-pen')?'$'+big:big;
+  bigEl.style.color= String(big).includes('(')?'var(--credit)':'var(--ink)';
+  document.getElementById('trBody').innerHTML=body;
+  openTrace();
+}
+function regInterest(r,b,mo,im,imPct){
+  if(r.ibranch==='plain'){
+    if(r.J<=0) return step('Interest (late only)',`due ${hl('$'+money(r.J))} ≤ 0 → MAX(0, due) ${EQ} $0 → interest ${res('$0.00')}`)
+      +`<div class="note">A credit row accrues no interest and never offsets another row’s interest.</div>`;
+    return step('Interest (late only)',`ROUND( MAX(0, due ${hl('$'+money(r.J))}) × ${hl(imPct)}/mo × ${hl(mo)} mo , 2 ) ${EQ} ${res('$'+money(r.K))}`);
+  }
+  // IN/KY/VA net position
+  const Sd=r.Sd!=null?r.Sd:0;
+  let head=`<div class="branch"><b>${r.jur} net-position rule (§23).</b> ${r.jur}’s base row and its surcharge row share one “bank account”. Base due = <b>$${money(r.J)}</b>, surcharge due = <b>$${money(Sd)}</b>.</div>`;
+  if(r.ibranch==='both'){
+    return head+step('Both rows positive → each keeps its own interest',`ROUND( MAX(0, base due ${hl('$'+money(r.J))}) × ${hl(imPct)} × ${hl(mo)} mo , 2 ) ${EQ} ${res('$'+money(r.K))}`);
+  } else if(r.ibranch==='net'){
+    return head+step('Net position',`base ${hl('$'+money(r.J))} + surcharge ${hl('$'+money(Sd))} ${EQ} ${hl('$'+money(r.net))} (positive)`)
+      +step('Interest on the net, shown on this base row',`ROUND( ${hl('$'+money(r.net))} × ${hl(imPct)} × ${hl(mo)} mo , 2 ) ${EQ} ${res('$'+money(r.K))}`);
+  } else {
+    return head+step('Net position ≤ 0 → no interest',`base ${hl('$'+money(r.J))} + surcharge ${hl('$'+money(Sd))} ${EQ} ${hl('$'+money(r.net))} → interest ${res('$0.00')}`);
+  }
+}
+function surchInterest(s,reg,mo,im,imPct){
+  const regDue=s.regDue;
+  let head=`<div class="branch"><b>${s.jur} surcharge interest (§23).</b> The surcharge row only carries its <i>own</i> interest when both it and the ${s.jur} base row are positive; otherwise any interest sits on the base row instead.</div>`;
+  if(s.ibranch==='both'){
+    return head+step('Both positive → surcharge keeps own interest',`ROUND( MAX(0, surcharge due ${hl('$'+money(s.J))}) × ${hl(imPct)} × ${hl(mo)} mo , 2 ) ${EQ} ${res('$'+money(s.K))}`);
+  }
+  return head+step('Interest carried on the base row instead',`base due ${hl('$'+money(regDue))} , surcharge due ${hl('$'+money(s.J))} → surcharge interest ${res('$0.00')}`);
+}
+function openTrace(){ document.getElementById('trace').dataset.open=1; document.getElementById('traceBack').dataset.open=1; }
+function closeTrace(){ document.getElementById('trace').dataset.open=0; document.getElementById('traceBack').dataset.open=0; document.querySelectorAll('.val.sel').forEach(x=>x.classList.remove('sel')); }
+
+/* ================= EXCEL EXPORT ================= */
+function colL(n){ let s=''; n=n+1; while(n>0){ let m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; }
+function exportXlsx(){
+  if(typeof XLSX==='undefined'){ toast('Excel library still loading — try again in a second'); return; }
+  const wb=XLSX.utils.book_new();
+  const q=S.filing.quarter;
+  // ---- Rates sheet ----
+  const rA=[['IFTA rate matrix — '+QLABEL[q]+'  (source: iftach.org U.S. rates; 0 = not taxed)']];
+  rA.push(['Code',...DB.fuels]);
+  DB.order.forEach(code=>{ rA.push([code,...DB.rates[q].base[code].map(x=>x==null?0:x)]); });
+  rA.push([]); rA.push(['SURCHARGE',...DB.fuels]);
+  ['IN','KY','VA'].forEach(st=>{ rA.push([st,...DB.rates[q].sur[st].map(x=>x==null?0:x)]); });
+  const wsR=XLSX.utils.aoa_to_sheet(rA);
+  wsR['!cols']=[{wch:10},...DB.fuels.map(()=>({wch:10}))];
+  XLSX.utils.book_append_sheet(wb,wsR,'Rates');
+  const baseFirst=3, baseLast=3+DB.order.length-1; // 1-indexed rows of base table (row1 title, row2 header)
+  const surFirst=baseLast+3;
+  const baseRange="Rates!$A$"+baseFirst+":$K$"+baseLast;
+  const surRange="Rates!$A$"+surFirst+":$K$"+(surFirst+2);
+  // ---- Filing sheet ----
+  const due=DUE[q];
+  const fA=[
+    ['IFTA Calc Bench — export','',''],
+    ['Filing quarter',QLABEL[q],''],
+    ['Base jurisdiction',S.filing.base,''],
+    ['Report date',S.filing.report,''],
+    ['Due date',due,''],
+    ['Months overdue',{t:'n',f:'IF(DATEVALUE(B4)<=DATEVALUE(B5),0,(YEAR(DATEVALUE(B4))-YEAR(DATEVALUE(B5)))*12+(MONTH(DATEVALUE(B4))-MONTH(DATEVALUE(B5))))'}],
+    ['Interest / month',{t:'n',f:'0.09/12'}],
+    ['','',''],
+    ['Note','B/C/D per jurisdiction are the summary-level aggregates (miles & gallons summed across vehicles of the fuel type, then rounded to whole). Every downstream column is a live formula — click a cell to see it.','']
+  ];
+  const wsF=XLSX.utils.aoa_to_sheet(fA); wsF['!cols']=[{wch:18},{wch:24},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,wsF,'Filing');
+  const MO="Filing!$B$6", IM="Filing!$B$7";
+  // ---- per fuel type sheet ----
+  const subCells=[]; // {fuel, sheet, subJcell, subKcell}
+  R.blocks.forEach(b=>{
+    const fi=fidx(b.fuel); const rateCol=fi+2; // B=2..K=11 in Rates
+    const A=[];
+    A.push(['Fuel type',FSHORT[b.fuel],'','','','','','','','','']);
+    // MPG line row2
+    A.push(['Fleet MPG',{t:'n',f:'ROUND(C3/D3,2)'},'','','','','','','','','']);
+    // row3 helper totals: A3 label,B3 totIftaMi,C3 totalMi,D3 totalGal
+    A.push(['Totals (mi / gal)',b.totIftaMi,b.totalMi,b.totalGal,'← total mi , total gal (incl non-IFTA '+intf(b.niftaMi)+' mi / '+intf(b.niftaGal)+' gal)','','','','','','']);
+    A.push([]); // row4 spacer
+    const HEAD=['Jurisdiction','IFTA mi','Non-tax mi','Fuel gal','Taxable mi','Taxable gal','Net tax gal','Rate','Tax/(credit)','Interest','Row total'];
+    A.push(HEAD); // row5
+    const first=6; // first data row (1-indexed)
+    b.rows.forEach((r,i)=>{
+      const R_=first+i;
+      const isS = (r.jur==='IN'||r.jur==='KY'||r.jur==='VA');
+      A.push([
+        r.jur, r.B, r.C, r.D,
+        {t:'n',f:`ROUND(B${R_}-C${R_},0)`},
+        {t:'n',f:`IF($B$2=0,0,ROUND(E${R_}/$B$2,0))`},
+        {t:'n',f:`ROUND(F${R_}-D${R_},0)`},
+        {t:'n',f:`IFERROR(VLOOKUP(A${R_},${baseRange},${rateCol},FALSE),0)`},
+        {t:'n',f:`ROUND(G${R_}*H${R_},2)`},
+        null, // interest filled after we know surcharge rows
+        {t:'n',f:`I${R_}+J${R_}`}
+      ]);
+    });
+    const dataLast=first+b.rows.length-1;
+    // surcharge rows
+    const sRowIndex={};
+    b.srows.forEach((s,i)=>{
+      const R_=dataLast+1+i; sRowIndex[s.jur]=R_;
+      A.push([
+        s.jur+' (Surcharge)','','','','',
+        {t:'n',f:`SUMIF($A$${first}:$A$${dataLast},"${s.jur}",$F$${first}:$F$${dataLast})`}, // gross taxable gal
+        '',
+        {t:'n',f:`IFERROR(VLOOKUP("${s.jur}",${surRange},${fi+2},FALSE),0)`},
+        {t:'n',f:`ROUND(F${R_}*H${R_},2)`},
+        null,
+        {t:'n',f:`I${R_}+J${R_}`}
+      ]);
+    });
+    const sLast=dataLast+b.srows.length;
+    // now fill interest formulas (need surcharge row refs)
+    b.rows.forEach((r,i)=>{
+      const R_=first+i; const cell='J'+R_;
+      let f;
+      if(r.jur==='IN'||r.jur==='KY'||r.jur==='VA'){
+        const sr=sRowIndex[r.jur]; const S_=sr?('I'+sr):'0';
+        f=`IF(AND(I${R_}>0,${S_}>0),ROUND(MAX(0,I${R_})*${IM}*${MO},2),IF(I${R_}+${S_}>0,ROUND((I${R_}+${S_})*${IM}*${MO},2),0))`;
+      } else {
+        f=`ROUND(MAX(0,I${R_})*${IM}*${MO},2)`;
+      }
+      A[4+1+i][9]={t:'n',f}; // header at index4(row5); data rows start array index 5
+    });
+    b.srows.forEach((s,i)=>{
+      const R_=dataLast+1+i; const regRef=`SUMIF($A$${first}:$A$${dataLast},"${s.jur}",$I$${first}:$I$${dataLast})`;
+      const f=`IF(AND(${regRef}>0,I${R_}>0),ROUND(MAX(0,I${R_})*${IM}*${MO},2),0)`;
+      A[4+1+b.rows.length+i][9]={t:'n',f};
+    });
+    // subtotal row
+    const subR=sLast+1;
+    A.push(['SUBTOTAL','','','','','','','',
+      {t:'n',f:`SUM(I${first}:I${sLast})`},
+      {t:'n',f:`SUM(J${first}:J${sLast})`},
+      {t:'n',f:`SUM(K${first}:K${sLast})`}]);
+    const ws=XLSX.utils.aoa_to_sheet(A);
+    ws['!cols']=[{wch:16},{wch:10},{wch:10},{wch:10},{wch:10},{wch:11},{wch:10},{wch:9},{wch:12},{wch:10},{wch:11}];
+    const nm=FSHORT[b.fuel].slice(0,28);
+    XLSX.utils.book_append_sheet(wb,ws,nm);
+    subCells.push({fuel:b.fuel,sheet:nm,jc:`'${nm}'!I${subR}`,kc:`'${nm}'!J${subR}`});
+  });
+  // ---- Summary ----
+  const sA=[['QUARTERLY FUEL TAX SUMMARY — '+QLABEL[q]]];
+  sA.push(['#','Fuel type','Tax / (credit) due']);
+  subCells.forEach((sc,i)=>{ sA.push([i+1,FSHORT[sc.fuel],{t:'n',f:sc.jc}]); });
+  const nFuel=subCells.length; const firstFuelRow=3; const lastFuelRow=3+nFuel-1;
+  sA.push(['','Subtotal',{t:'n',f:`SUM(C${firstFuelRow}:C${lastFuelRow})`}]);
+  const subRow=lastFuelRow+1;
+  const intExpr=subCells.map(sc=>sc.kc).join('+')||'0';
+  sA.push(['','Interest',{t:'n',f:intExpr}]);
+  const intRow=subRow+1;
+  sA.push(['','Penalty',{t:'n',f:`IF(${MO}>0,MAX(50,0.1*MAX(0,C${subRow})),0)`}]);
+  const penRow=intRow+1;
+  sA.push(['','TOTAL tax due / (credit)',{t:'n',f:`C${subRow}+C${intRow}+C${penRow}`}]);
+  const wsS=XLSX.utils.aoa_to_sheet(sA); wsS['!cols']=[{wch:5},{wch:26},{wch:16}];
+  // fix fuel line formulas (remove accidental leading =)
+  XLSX.utils.book_append_sheet(wb,wsS,'Summary');
+  // move Summary & Filing to front
+  wb.SheetNames=['Summary','Filing',...R.blocks.map(b=>FSHORT[b.fuel].slice(0,28)),'Rates'];
+  const fn=`IFTA_${q}_${S.filing.base}_calc.xlsx`;
+  XLSX.writeFile(wb,fn);
+  toast('Exported '+fn+' — open in Excel; formulas recalc on load');
+}
+
+/* ================= IMPORT ================= */
+function openImport(){ document.getElementById('impVeh').textContent='Vehicle '+(S.vi+1)+' ('+FSHORT[S.vehicles[S.vi].fuel]+')'; document.getElementById('importBack').dataset.open=1; document.getElementById('impText').value=''; document.getElementById('impText').focus(); }
+function closeImport(){ document.getElementById('importBack').dataset.open=0; }
+function applyImport(){
+  const txt=document.getElementById('impText').value.trim(); if(!txt){closeImport();return;}
+  const rows=[]; let bad=0;
+  txt.split(/\r?\n/).forEach(line=>{ line=line.trim(); if(!line)return;
+    const p=line.split(/[,\t;]+|\s{2,}|\s+/).map(x=>x.trim()).filter(x=>x!=='');
+    if(!p.length)return;
+    const code=parseJur(p[0]); if(!code){bad++;return;}
+    const num=x=>{ const n=parseFloat(String(x).replace(/[$,]/g,'')); return isNaN(n)?0:n; };
+    let unit='G'; const u=(p[4]||'').toUpperCase(); if(u.startsWith('L'))unit='L';
+    rows.push({jur:code,mi:num(p[1]),nt:num(p[2]||0),fuel:num(p[3]||0),unit});
+  });
+  if(!rows.length){ toast('No valid rows found — check the format'); return; }
+  const v=S.vehicles[S.vi];
+  // replace blank rows, else append
+  const hasData=v.rows.some(r=>r.jur);
+  v.rows= hasData? v.rows.concat(rows) : rows;
+  S.example=false; save(); closeImport(); render();
+  toast('Loaded '+rows.length+' row'+(rows.length>1?'s':'')+(bad?' · '+bad+' skipped':''));
+}
+
+/* ================= misc UI ================= */
+let toastT=null;
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.dataset.on=1; clearTimeout(toastT); toastT=setTimeout(()=>t.dataset.on=0,3200); }
+function setTheme(mode){ if(mode==='auto'){document.documentElement.removeAttribute('data-theme');localStorage.removeItem('ifta_theme');} else {document.documentElement.setAttribute('data-theme',mode);localStorage.setItem('ifta_theme',mode);} }
+document.getElementById('btnTheme').onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); setTheme(cur==='dark'?'light':cur==='light'?'auto':'dark'); };
+document.getElementById('btnReset').onclick=()=>{ if(confirm('Start a new filing? Past filings are kept in ◷ Past filings.')){ S=fresh(); S.example=false; S.id=null; S.vehicles=[{fuel:'DIESEL',niftaMi:0,niftaGal:0,rows:[blankRow()]}]; S.step=1; render(); } };
+document.getElementById('btnHist').onclick=openHist;
+document.getElementById('histClose').onclick=closeHist;
+document.getElementById('histBack').onclick=closeHist;
+document.getElementById('btnImport').onclick=()=>{ if(S.step!==2){ S.step=2; render(); } setTimeout(openImport,60); };
+document.getElementById('trClose').onclick=closeTrace;
+document.getElementById('traceBack').onclick=closeTrace;
+document.getElementById('impCancel').onclick=closeImport;
+document.getElementById('importBack').onclick=e=>{ if(e.target.id==='importBack')closeImport(); };
+document.getElementById('impApply').onclick=applyImport;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeTrace();closeImport();closeHist();} });
+
+/* ================= boot ================= */
+(function(){ const th=localStorage.getItem('ifta_theme'); if(th)document.documentElement.setAttribute('data-theme',th);
+  const saved=load(); S = saved || fresh(); if(!S.step)S.step=1; buildJlist(); render(); updHistCount();
+})();
+</script>
+</body>
+</html>
